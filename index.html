@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TOEIC Answer Sheet</title>
+    <style>
+        /* 前回と同じスタイル定義 */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .mode-switch {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .mode-switch button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        
+        .mode-switch button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 5px;
+            background-color: #f0f0f0;
+        }
+        
+        .question-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        
+        .question {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .question.correct {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .question.incorrect {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .question-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .options {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+        }
+        
+        .option input[type="radio"] {
+            margin-right: 3px;
+        }
+        
+        .option label {
+            font-size: 0.9em;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .submit-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .submit-button:hover {
+            background-color: #0056b3;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .results.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TOEIC® ANSWER SHEET</h1>
+    </div>
+
+    <div class="mode-switch">
+        <button onclick="switchMode('answer')" class="active" id="answerModeBtn">解答モード</button>
+        <button onclick="switchMode('scoring')" id="scoringModeBtn">採点モード</button>
+    </div>
+
+    <div class="section">
+        <div class="section-title">LISTENING TEST (Part 1-4: Questions 1-100)</div>
+        <div class="question-grid" id="listening-section"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">READING TEST (Part 5-7: Questions 101-200)</div>
+        <div class="question-grid" id="reading-section"></div>
+    </div>
+
+    <button class="submit-button" onclick="handleSubmit()" id="submitButton">回答を確認</button>
+
+    <div class="results" id="results">
+        <h3>採点結果</h3>
+        <p>Listening Section (1-100): <span id="listeningScore">0</span>/100</p>
+        <p>Reading Section (101-200): <span id="readingScore">0</span>/100</p>
+        <p>Total Score: <span id="totalScore">0</span>/200</p>
+    </div>
+
+    <div class="instructions">
+        <p id="modeInstructions">※ 各問題について、正しい答えを1つ選んでください。</p>
+    </div>
+
+    <script>
+        let currentMode = 'answer';
+        let studentAnswers = {};
+        let correctAnswers = {};
+
+        function createQuestions(startNum, endNum, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let i = startNum; i <= endNum; i++) {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.id = `question${i}`;
+                
+                const questionNumber = document.createElement('div');
+                questionNumber.className = 'question-number';
+                questionNumber.textContent = `${i}.`;
+                
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options';
+                
+                ['A', 'B', 'C', 'D'].forEach(option => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = `q${i}`;
+                    input.id = `q${i}${option}`;
+                    input.value = option;
+                    
+                    // モードに応じて適切な選択状態を設定
+                    if (currentMode === 'answer' && studentAnswers[i] === option) {
+                        input.checked = true;
+                    } else if (currentMode === 'scoring' && correctAnswers[i] === option) {
+                        input.checked = true;
+                    }
+                    
+                    input.addEventListener('change', () => {
+                        if (currentMode === 'answer') {
+                            studentAnswers[i] = option;
+                        } else {
+                            correctAnswers[i] = option;
+                        }
+                    });
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `q${i}${option}`;
+                    label.textContent = option;
+                    
+                    optionDiv.appendChild(input);
+                    optionDiv.appendChild(label);
+                    optionsDiv.appendChild(optionDiv);
+                });
+                
+                questionDiv.appendChild(questionNumber);
+                questionDiv.appendChild(optionsDiv);
+                container.appendChild(questionDiv);
+            }
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('answerModeBtn').classList.toggle('active', mode === 'answer');
+            document.getElementById('scoringModeBtn').classList.toggle('active', mode === 'scoring');
+            document.getElementById('submitButton').textContent = mode === 'answer' ? '回答を確認' : '採点する';
+            document.getElementById('modeInstructions').textContent = 
+                mode === 'answer' 
+                    ? '※ 各問題について、正しい答えを1つ選んでください。' 
+                    : '※ 各問題の正解を選択してください。';
+            document.getElementById('results').classList.remove('visible');
+            
+            // 問題の表示を更新
+            createQuestions(1, 100, 'listening-section');
+            createQuestions(101, 200, 'reading-section');
+            
+            // 採点結果をクリア
+            const questions = document.querySelectorAll('.question');
+            questions.forEach(q => {
+                q.classList.remove('correct', 'incorrect');
+            });
+        }
+
+        function handleSubmit() {
+            if (currentMode === 'answer') {
+                checkUnanswered();
+            } else {
+                scoreAnswers();
+            }
+        }
+
+        function checkUnanswered() {
+            const unanswered = [];
+            for (let i = 1; i <= 200; i++) {
+                if (!studentAnswers[i]) {
+                    unanswered.push(i);
+                }
+            }
+            
+            if (unanswered.length > 0) {
+                alert(`未回答の問題があります：\n問題番号: ${unanswered.join(', ')}`);
+            } else {
+                alert('全ての問題に回答しました！');
+            }
+        }
+
+        function scoreAnswers() {
+            let listeningCorrect = 0;
+            let readingCorrect = 0;
+
+            for (let i = 1; i <= 200; i++) {
+                const questionDiv = document.getElementById(`question${i}`);
+                if (studentAnswers[i] && correctAnswers[i]) {
+                    const isCorrect = studentAnswers[i] === correctAnswers[i];
+                    questionDiv.classList.remove('correct', 'incorrect');
+                    questionDiv.classList.add(isCorrect ? 'correct' : 'incorrect');
+                    
+                    if (isCorrect) {
+                        if (i <= 100) {
+                            listeningCorrect++;
+                        } else {
+                            readingCorrect++;
+                        }
+                    }
+                }
+            }
+
+            document.getElementById('listeningScore').textContent = listeningCorrect;
+            document.getElementById('readingScore').textContent = readingCorrect;
+            document.getElementById('totalScore').textContent = listeningCorrect + readingCorrect;
+            document.getElementById('results').classList.add('visible');
+        }
+
+        // 初期化
+        createQuestions(1, 100, 'listening-section');
+        createQuestions(101, 200, 'reading-section');
+    </script>
+</body>
+</html>
